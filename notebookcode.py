@@ -24,28 +24,6 @@ from copy import copy
 from copy import deepcopy
 
 
-# In[5]:
-
-
-nnetQ = nnQ.NeuralNetwork(2, 3, 1)
-
-
-# For this assignment, you will use reinforcement learning to solve the [Towers of Hanoi](https://en.wikipedia.org/wiki/Tower_of_Hanoi) puzzle.  
-# 
-# To accomplish this, you must modify the code discussed in lecture for learning to play Tic-Tac-Toe.  Modify the code  so that it learns to solve the three-disk, three-peg
-# Towers of Hanoi Puzzle.  In some ways, this will be simpler than the
-# Tic-Tac-Toe code.  
-# 
-# Steps required to do this include the following:
-# 
-#   - Represent the state, and use it as a tuple as a key to the Q dictionary.
-#   - Make sure only valid moves are tried from each state.
-#   - Assign reinforcement of $1$ to each move, even for the move that results in the goal state.
-# 
-# Make a plot of the number of steps required to reach the goal for each
-# trial.  Each trial starts from the same initial state.  Decay epsilon
-# as in the Tic-Tac-Toe code.
-
 # ## Requirements
 
 # First, how should we represent the state of this puzzle?  We need to keep track of which disks are on which pegs. Name the disks 1, 2, and 3, with 1 being the smallest disk and 3 being the largest. The set of disks on a peg can be represented as a list of integers.  Then the state can be a list of three lists.
@@ -74,6 +52,12 @@ nnetQ = nnQ.NeuralNetwork(2, 3, 1)
 # 
 # Add markdown cells in which you describe the Q learning algorithm and your implementation of Q learning as applied to the Towers of Hanoi problem.  Use at least 15 sentences, in one or more markdown cells.
 
+# # Functions
+# The following functions are used to implement the Q learning algorithm applied to the Towers of Hanoi problem.
+# Each function should have a brief description on how what it does and how it relates to the Q learning algorithm.
+
+# The following function is a helper function, which turns state and move into tuples, this is necessary for iterating over them in the Dictionary Q, it will return the "tuplefide" state and move pair.
+
 # In[309]:
 
 
@@ -84,11 +68,74 @@ def stateMoveTuple(state, move):
     return (tuple(tempTupState),tuple(move))
 
 
-# In[300]:
+# The validMoves function takes in a state checks to see what moves can be made from the current state, it checks the tops of each of the columns and sees if this top can move to either of the other two columns. 
+
+# In[13]:
 
 
-print(stateMoveTuple([[2,3], [1], []], [1 ,2]))
+def validMoves(state):
+    validMoves = []
+    for x in range(1,4):
+        for y in range(1,4):
+            if len(state[x-1]) > 0:
+                topx = state[x-1]
+                if len(state[y-1]) !=0:
+                    topy = state[y-1]
+                if len(state[y-1]) == 0:
+                    validMoves.append([x,y])
+                elif((topx != topy and topy > topx)):
+                    validMoves.append([x,y])
+                elif((topx != topy and topy > topx)):
+                    validMoves.append([x,y])
+                elif((topx != topy and topy > topx)):
+                    validMoves.append([x,y])
 
+    return validMoves                
+
+
+# The printState function simply prints out the state given to it in a format that is nice to read. It gives a visual of the columns and the "rings" on them. 
+
+# In[380]:
+
+
+def printState(state):
+    temp = 0
+    col1Len = 0
+    col2Len = 0
+    col3Len = 0
+    big = len(max(state))
+    while temp < len(max(state)):
+        holder1,holder2,holder3 = " "," "," "
+        
+        if col1Len< len(state[0]) and col1Len !=big and col1Len == temp:
+            holder1 = state[0][temp]
+            col1Len = col1Len + 1
+        if col2Len < len(state[1]) and col2Len == temp:
+            holder2 = state[1][temp]
+            col2Len = col2Len + 1
+        if col3Len < len(state[2])and col3Len == temp:
+            holder3 = state[2][temp]
+            col3Len = col3Len + 1
+            
+        print(holder1,holder2,holder3)
+        temp = temp+1
+    print("------")
+
+
+# The makeMove function returns a copy of the given state after it has taken the move which is given to it.
+
+# In[302]:
+
+
+def makeMove(state, move):
+    state2 = deepcopy(state)
+    temp = state2[move[0]-1][0]
+    state2[move[0]-1].pop(0)
+    state2[move[1]-1].insert(0,temp)
+    return state2
+
+
+# The trainQ function is what actually creates and trains the Q dictionary (the State,Action dictionary). It goes through the given amount of reputations, and updates the value of the Q dictionary based on the choice decided from the epsilonFindMoves(greedyEpsilon). It also decays the epsilon given to the epsilonFindMoves function. 
 
 # In[345]:
 
@@ -131,7 +178,9 @@ def trainQ(nRepetitions, learningRate, epsilonDecayFactor, validMovesF, makeMove
     return Q ,step_count
 
 
-# In[327]:
+# The testQ function takes in the Q dictionary that was trained, and picks the most greedy option towards the goal. I
+
+# In[355]:
 
 
 def testQ(Q, maxSteps, validMovesF, makeMovesF):
@@ -139,7 +188,7 @@ def testQ(Q, maxSteps, validMovesF, makeMovesF):
     state = [[1,2,3],[],[]]
     epsilon = 0
     path = []
-    
+    #path.append(state)
     
     step = 0
     goal_state = [[],[],[1,2,3]]
@@ -147,10 +196,11 @@ def testQ(Q, maxSteps, validMovesF, makeMovesF):
 
     while done != True:
         step = step+1
+        path.append(state)
         next_move = epsilonFindMoves(Q, state, epsilon, validMovesF)
 
         next_state = makeMove(state,next_move) 
-        path.append(next_state)
+        
 
         if next_state == goal_state:
             done = True
@@ -159,6 +209,8 @@ def testQ(Q, maxSteps, validMovesF, makeMovesF):
         state = next_state
     return path
 
+
+# The epsilonFindMoves(...) function takes in the 
 
 # In[301]:
 
@@ -172,199 +224,206 @@ def epsilonFindMoves(Q, state, epsilonRate, validMovesF):
         return validMoveList[np.argmin(Qs)]
 
 
-# In[13]:
-
-
-def validMoves(state):
-    validMoves = []
-    for x in range(1,4):
-        for y in range(1,4):
-            if len(state[x-1]) > 0:
-                topx = state[x-1]
-                if len(state[y-1]) !=0:
-                    topy = state[y-1]
-                if len(state[y-1]) == 0:
-                    validMoves.append([x,y])
-                elif((topx != topy and topy > topx)):
-                    validMoves.append([x,y])
-                elif((topx != topy and topy > topx)):
-                    validMoves.append([x,y])
-                elif((topx != topy and topy > topx)):
-                    validMoves.append([x,y])
-
-    return validMoves                
-
-
-# In[331]:
-
-
-state = [[1],[],[2,3]]
-print(validMoves(state))
-
-
-# In[302]:
-
-
-def makeMove(state, move):
-    state2 = deepcopy(state)
-    temp = state2[move[0]-1][0]
-    state2[move[0]-1].pop(0)
-    state2[move[1]-1].insert(0,temp)
-    return state2
-
-
-# In[12]:
-
-
-def printState(state):
-    temp = 0
-    col1Len = 0
-    col2Len = 0
-    col3Len = 0
-    big = len(max(state))
-    while temp != len(max(state)):
-        holder1,holder2,holder3 = " "," "," "
-        if col1Len< len(state[0]) and col1Len !=big and col1Len == temp:
-            holder1 = state[0][temp]
-            col1Len = col1Len + 1
-        if col2Len < len(state[1]) and col2Len == temp:
-            holder2 = state[1][temp]
-            col2Len = col2Len + 1
-        if col3Len < len(state[2])and col3Len == temp:
-            holder3 = state[2][temp]
-            col3Len = col3Len + 1
-        print(holder1,holder2,holder3)
-                
-        temp = temp+1
-    print("------")
-
-
-# In[328]:
-
-
-path = testQ(Q, 50, validMoves, makeMove)
-
-
-# In[329]:
+# In[369]:
 
 
 for x in path:
     printState(x)
 
 
-# In[346]:
+# In[370]:
 
 
-Q, stepsToGoal = trainQ(500, 0.5, 0.7, validMoves, makeMove)
+Q, stepsToGoal = trainQ(1000, 0.5, 0.7, validMoves, makeMove)
 
 
-# In[347]:
-
-
-mean(stepsToGoal)
-
-
-# In[341]:
+# In[371]:
 
 
 mean(stepsToGoal)
 
 
-# # Examples
-
-# In[ ]:
+# In[372]:
 
 
-state = [[1], [], [2,3]]
-printState(state)
+mean(stepsToGoal)
 
 
-# In[ ]:
+# # Testing
+
+# In[378]:
 
 
 state = [[1,2,3],[],[]]
 move = [1,2]
-print(makeMove([[2], [3], [1]], [1, 2]))
 
 
-# In[ ]:
+# In[377]:
 
 
-state = [[1,2,3],[],[]]
+#testing stateMoveTuple(state,move)
+print(stateMoveTuple(state,move))
+
+
+# In[376]:
+
+
+#testing validMoves(state)
 print(validMoves(state))
 
 
-# In[ ]:
+# In[383]:
 
 
-state = [[1, 2, 3], [], []]
+#testing printState(state)
 printState(state)
 
 
-# In[ ]:
+# In[384]:
 
 
-move =[1, 2]
-
-stateMoveTuple(state, move)
-
-
-# In[ ]:
+#testing makeMove(state,move)
+print(makeMove(state,move))
 
 
-newstate = makeMove(state, move)
-newstate
+# In[399]:
 
 
-# In[ ]:
-
-
-printState(newstate)
-
-
-# In[82]:
-
-
+#testing trainQ(...)
 Q, stepsToGoal = trainQ(50, 0.5, 0.7, validMoves, makeMove)
+print('State Actions in Q:' ,len(Q))
+print("Progression of steps to goal:")
+print(np.array(stepsToGoal))
+print('Mean of steps:',mean(steps))
 
 
-# In[131]:
+# In[410]:
 
 
-Q, steps = trainQ(1000, 0.5, 0.7, validMoves, makeMove)
+#testing testQ(...)
+Q, stepsToGoal = trainQ(100, 0.5, 0.7, validMoves, makeMove)
+path = testQ(Q, 20, validMoves, makeMove)
+print("Path for trained Q to Goal:")
+for s in path:
+    printState(s)
 
 
-# In[132]:
-
-
-mean(steps)
-
-
-# In[320]:
-
-
-Q
-
-
-# In[321]:
+# In[403]:
 
 
 path
 
 
-# In[10]:
+# ## Further investigation
+
+# ### Control
+
+# In[445]:
 
 
-for s in path:
-    printState(s)
-    print()
+Q, stepsToGoal = trainQ(500, 0.5, 0.7, validMoves, makeMove)
+print('500 Repetitions, .5 learning rate, .7 decay rate')
+print('State Actions in Q:' ,len(Q))
+print("Progression of steps to goal:")
+print(np.array(stepsToGoal[:100]))
+print('Mean of steps:',mean(stepsToGoal))
 
+
+# ### Repetitions
+
+# In[436]:
+
+
+Q, stepsToGoal = trainQ(5, 0.5, 0.7, validMoves, makeMove)
+print('5 Repetitions')
+print('State Actions in Q:' ,len(Q))
+print("Progression of steps to goal:")
+print(np.array(stepsToGoal))
+print('Mean of steps:',mean(stepsToGoal))
+
+
+# In[437]:
+
+
+Q, stepsToGoal = trainQ(500, 0.5, 0.7, validMoves, makeMove)
+print('500 Repetitions')
+print('State Actions in Q:' ,len(Q))
+print("Progression of steps to goal:")
+print(np.array(stepsToGoal[:100]))
+print('Mean of steps:',mean(stepsToGoal))
+
+
+# In[438]:
+
+
+Q, stepsToGoal = trainQ(10000, 0.5, 0.7, validMoves, makeMove)
+print('10000 Repetitions')
+print("Progression of steps to goal:")
+print(np.array(stepsToGoal[:100]))
+print('Mean of steps:',mean(stepsToGoal))
+
+
+# ### Learning Rate
+
+# In[439]:
+
+
+Q, stepsToGoal = trainQ(500, .99 , 0.7, validMoves, makeMove)
+print('500 Repetitions, .99 learning rate')
+print("Progression of steps to goal:")
+print(np.array(stepsToGoal[:100]))
+print('Mean of steps:',mean(stepsToGoal))
+Q, stepsToGoal = trainQ(500, .01 , 0.7, validMoves, makeMove)
+print('500 Repetitions, .01 learning rate')
+print("Progression of steps to goal:")
+print(np.array(stepsToGoal[:100]))
+print('Mean of steps:',mean(stepsToGoal))
+
+
+# ### Epsilon decay rate
+
+# In[440]:
+
+
+Q, stepsToGoal = trainQ(500, 0.5, 0.99, validMoves, makeMove)
+print('500 Repetitions, .99 decay')
+print("Progression of steps to goal:")
+print(np.array(stepsToGoal[:100]))
+print('Mean of steps:',mean(stepsToGoal))
+Q, stepsToGoal = trainQ(500, 0.5, 0.01, validMoves, makeMove)
+print('500 Repetitions, .01 decay')
+print("Progression of steps to goal:")
+print(np.array(stepsToGoal[:100]))
+print('Mean of steps:',mean(stepsToGoal))
+
+
+# ### Best of 3 options
+
+# In[442]:
+
+
+Q, stepsToGoal = trainQ(10000, 0.99, 0.01, validMoves, makeMove)
+print('10000 Repetitions, .99 learning rate, .01 decay')
+print("Progression of steps to goal:")
+print(np.array(stepsToGoal[:100]))
+print('Mean of steps:',mean(stepsToGoal))
+
+
+# # Discussion of Results
+
+# There were some very interesting things that I found when testing the trainQ function with different inputs. When testing with different repetitions it was very clear to see that there is a clear benefit to doing more repetitions. Doing only 5 repetitions meant that it took many more than 7 steps to get to the goal, and doing 500 repetitions always reached 7 steps. It didn't seem however that doing an excessive amount of repetitions made it quicker to get to 7 steps. 
+# 
+# I also tested with differing learning rates both .99 and .01. This did seem to make a big impact on the "learning". The .99 learning rate was able to very quickly lower it down to only 7 moves, it was faster than the control. This was completely the opposite of the .01 learning rate, which only a couple times randomly got 7 moves.
+# 
+# I then tested different epsilon decay rates .99 and .01. This did seem to make an impact the decay rate of .01 did reach doing 7 moves at about the same rate as the control, whereas .99 took a while to reach 8 moves. Changing decay rate didn't seem to have as much a positive impact as it would have a negative one when compared to the control.
+# 
+# After doing this, I took the best input option from all the different testings, and it did significantly better than the control. The control had an average of 8.26 and took about 25 repetitions to reach a constant of 7 moves. This is much less effective when compared to the best of all the options I tested, that one had an average of 7.033 moves, and took only 12 to reach a constant of 7 moves. 
 
 # ## Grading
 
 # Download and extract `A4grader.py` from [A4grader.tar](http://www.cs.colostate.edu/~anderson/cs440/notebooks/A4grader.tar).
 
-# In[343]:
+# In[348]:
 
 
 get_ipython().magic('run -i A4grader.py')
